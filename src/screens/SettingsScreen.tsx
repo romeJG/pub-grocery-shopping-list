@@ -1,14 +1,16 @@
 import { useRef, useState } from 'react'
-import { Banknote, Wallet, Download, Upload, Trash2, Moon, ChevronsUpDown } from 'lucide-react'
+import { Banknote, Wallet, Download, Upload, Trash2, Moon, ChevronsUpDown, Lock, FileText } from 'lucide-react'
 import { Page } from '../components/Page'
-import { Section, IconBadge } from '../components/List'
+import { Section, IconBadge, Row } from '../components/List'
 import { SegmentedControl } from '../components/Controls'
 import { Alert } from '../components/Dialog'
+import { StorageMeter } from '../components/StorageMeter'
 import { exportData, useStore } from '../store/store'
 import type { Theme } from '../store/types'
 import { CURRENCIES, currencySymbol, parseAmount } from '../lib/money'
+import type { LegalDoc } from './LegalScreen'
 
-export function SettingsScreen() {
+export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) => void }) {
   const settings = useStore((s) => s.settings)
   const tripCount = useStore((s) => s.history.length)
   const { updateSettings, importData, resetAll } = useStore()
@@ -126,6 +128,8 @@ export function SettingsScreen() {
         </div>
       </Section>
 
+      <StorageMeter />
+
       <Section
         header="Data"
         footer="Everything is stored only in this browser on this device. Export a backup to move it or keep it safe."
@@ -143,6 +147,21 @@ export function SettingsScreen() {
           <div className="row-inner flex min-h-11 flex-1 items-center pr-4 text-[17px]">Import Backup</div>
         </button>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={onFile} />
+      </Section>
+
+      <Section header="About">
+        <Row
+          leading={<IconBadge icon={Lock} color="#5856D6" />}
+          title="Privacy Policy"
+          chevron
+          onClick={() => onOpenLegal('privacy')}
+        />
+        <Row
+          leading={<IconBadge icon={FileText} color="#8E8E93" />}
+          title="Terms of Use"
+          chevron
+          onClick={() => onOpenLegal('terms')}
+        />
       </Section>
 
       <Section>

@@ -6,8 +6,11 @@ import { TripScreen } from './screens/TripScreen'
 import { ListScreen } from './screens/ListScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { TripDetailScreen } from './screens/TripDetailScreen'
+import { LegalScreen, type LegalDoc } from './screens/LegalScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
+import { Alert } from './components/Dialog'
 import { useStore } from './store/store'
+import { requestPersistence, STORAGE_ERROR_EVENT } from './lib/storage'
 
 function useTheme() {
   const theme = useStore((s) => s.settings.theme)
@@ -26,10 +29,32 @@ function useTheme() {
   }, [theme])
 }
 
+/** Once there's data worth keeping, ask the browser not to evict it. */
+function usePersistentStorage() {
+  const hasData = useStore((s) => s.history.length > 0 || s.list.length > 0 || s.activeTrip != null)
+  useEffect(() => {
+    if (hasData) void requestPersistence()
+  }, [hasData])
+}
+
+/** Surface failed saves (storage full) instead of losing changes silently. */
+function useStorageErrors() {
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    const onError = () => setFailed(true)
+    window.addEventListener(STORAGE_ERROR_EVENT, onError)
+    return () => window.removeEventListener(STORAGE_ERROR_EVENT, onError)
+  }, [])
+  return [failed, () => setFailed(false)] as const
+}
+
 export default function App() {
   useTheme()
+  usePersistentStorage()
+  const [saveFailed, dismissSaveFailed] = useStorageErrors()
   const [tab, setTab] = useState<Tab>('trip')
-  const [detail, setDetail] = useState<{ tripId: string; from: Tab } | null>(null)
+  // A page pushed over the current tab: a past trip, or a legal document.
+  const [detail, setDetail] = useState<{ kind: 'trip'; tripId: string } | { kind: 'legal'; doc: LegalDoc } | null>(null)
   // Bumped by the tab bar's "+" accessory; screens open their add sheet when it changes.
   const [addSignal, setAddSignal] = useState({ trip: 0, list: 0 })
   const shopping = useStore((s) => s.activeTrip != null)
@@ -39,7 +64,7 @@ export default function App() {
     window.dispatchEvent(new CustomEvent(TABBAR_MINIMIZE_EVENT, { detail: false }))
   }, [detail])
 
-  const openTrip = (from: Tab) => (tripId: string) => setDetail({ tripId, from })
+  const openTrip = (tripId: string) => setDetail({ kind: 'trip', tripId })
   const switchTab = (t: Tab) => {
     setDetail(null)
     setTab(t)
@@ -50,15 +75,15 @@ export default function App() {
       <TripScreen
         onFinished={(id) => {
           setTab('history')
-          setDetail({ tripId: id, from: 'history' })
+          setDetail({ kind: 'trip', tripId: id })
         }}
-        onOpenTrip={openTrip('trip')}
+        onOpenTrip={openTrip}
         addSignal={addSignal.trip}
       />
     ),
     list: <ListScreen onStartShopping={() => switchTab('trip')} addSignal={addSignal.list} />,
-    history: <HistoryScreen onOpenTrip={openTrip('history')} />,
-    settings: <SettingsScreen />,
+    history: <HistoryScreen onOpenTrip={openTrip} />,
+    settings: <SettingsScreen onOpenLegal={(doc) => setDetail({ kind: 'legal', doc })} />,
   }
 
   return (
@@ -73,7 +98,7 @@ export default function App() {
       <AnimatePresence>
         {detail && (
           <motion.div
-            key={detail.tripId}
+            key={detail.kind === 'trip' ? detail.tripId : detail.doc}
             className="absolute inset-0 z-10 bg-bg shadow-[-8px_0_24px_rgba(0,0,0,0.12)]"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -87,14 +112,35 @@ export default function App() {
               if (info.offset.x > 100 || info.velocity.x > 500) setDetail(null)
             }}
           >
-            <TripDetailScreen
-              tripId={detail.tripId}
-              onBack={() => setDetail(null)}
-              onShopAgain={() => switchTab('list')}
-            />
+            {detail.kind === 'trip' ? (
+              <TripDetailScreen
+                tripId={detail.tripId}
+                onBack={() => setDetail(null)}
+                onShopAgain={() => switchTab('list')}
+              />
+            ) : (
+              <LegalScreen doc={detail.doc} onBack={() => setDetail(null)} />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Alert
+        open={saveFailed}
+        title="Couldn’t save changes"
+        message="This device’s storage for the app is full. Export a backup, then delete old trips in History to free up space."
+        onDismiss={dismissSaveFailed}
+        actions={[
+          { label: 'OK', style: 'cancel', onPress: dismissSaveFailed },
+          {
+            label: 'Settings',
+            onPress: () => {
+              dismissSaveFailed()
+              switchTab('settings')
+            },
+          },
+        ]}
+      />
 
       <TabBar
         tab={tab}

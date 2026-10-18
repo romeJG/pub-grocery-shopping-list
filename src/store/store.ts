@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { uid } from '../lib/util'
+import { safeLocalStorage } from '../lib/storage'
 import type { Category, Item, ListItem, PersistedState, Settings, Trip } from './types'
 
 export const STORAGE_KEY = 'grocery-tracker:v1'
@@ -155,7 +156,8 @@ export const useStore = create<Store>()(
     {
       name: STORAGE_KEY,
       version: 1,
-      storage: createJSONStorage(() => localStorage),
+      // Failed writes (storage full) are reported via STORAGE_ERROR_EVENT instead of being lost silently.
+      storage: createJSONStorage(() => safeLocalStorage),
       partialize: (s): PersistedState => ({
         settings: s.settings,
         list: s.list,
