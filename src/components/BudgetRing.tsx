@@ -7,12 +7,15 @@ export function BudgetRing({
   size = 132,
   stroke = 16,
   children,
+  morphSource,
 }: {
   progress: number
   color: string
   size?: number
   stroke?: number
   children?: React.ReactNode
+  /** Marks the ring as the source the nav-bar badge's mini ring morphs out of. */
+  morphSource?: boolean
 }) {
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
@@ -22,7 +25,7 @@ export function BudgetRing({
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90" data-morph-ring-source={morphSource || undefined}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={stroke} />
         <motion.circle
           cx={size / 2}

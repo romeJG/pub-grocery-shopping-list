@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { popCheck } from './gsap'
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
@@ -64,7 +65,11 @@ export function flyRow(source: HTMLElement, id: string, { hideSource = false, du
 
     if (t < 1) return requestAnimationFrame(frame)
     ghost.remove()
-    if (dest) dest.style.visibility = ''
+    if (dest) {
+      dest.style.visibility = ''
+      // Landed in the cart: pop the check and draw the tick.
+      if (dest.querySelector('[data-check-circle] svg')) popCheck(dest.querySelector('[data-check-circle]'))
+    }
   }
   requestAnimationFrame(frame)
 }

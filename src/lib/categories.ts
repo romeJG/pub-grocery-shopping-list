@@ -53,28 +53,53 @@ export function groupByCategory<T extends { category: Category }>(items: T[]) {
 }
 
 const KEYWORDS: [Category, string[]][] = [
-  ['produce', ['apple', 'banana', 'orange', 'mango', 'grape', 'lemon', 'lime', 'berry', 'tomato', 'onion', 'garlic', 'potato', 'carrot', 'cabbage', 'lettuce', 'spinach', 'pechay', 'kangkong', 'ampalaya', 'eggplant', 'talong', 'sitaw', 'calamansi', 'ginger', 'luya', 'pepper', 'cucumber', 'avocado', 'fruit', 'veg', 'broccoli', 'squash', 'kalabasa', 'sayote', 'okra', 'pineapple', 'papaya', 'melon', 'herb', 'cilantro', 'basil']],
+  ['produce', ['apple', 'banana', 'orange', 'mango', 'grape', 'lemon', 'lime', 'berry', 'strawberry', 'blueberry', 'tomato', 'onion', 'garlic', 'potato', 'carrot', 'cabbage', 'lettuce', 'spinach', 'pechay', 'kangkong', 'ampalaya', 'eggplant', 'talong', 'sitaw', 'calamansi', 'ginger', 'luya', 'pepper', 'cucumber', 'avocado', 'fruit', 'vegetable', 'veggie', 'broccoli', 'squash', 'kalabasa', 'sayote', 'okra', 'pineapple', 'papaya', 'melon', 'herb', 'cilantro', 'basil']],
   ['meat', ['chicken', 'pork', 'beef', 'baboy', 'manok', 'liempo', 'ham', 'bacon', 'sausage', 'hotdog', 'longganisa', 'tocino', 'ground', 'steak', 'lamb', 'turkey', 'meat', 'chorizo']],
   ['seafood', ['fish', 'isda', 'shrimp', 'hipon', 'salmon', 'tuna', 'tilapia', 'bangus', 'squid', 'pusit', 'crab', 'clam', 'mussel', 'tahong', 'galunggong', 'dilis', 'sardine', 'prawn']],
-  ['frozen', ['frozen', 'ice cream', 'nuggets', 'fries', 'popsicle']],
+  ['frozen', ['frozen', 'ice cream', 'nugget', 'fries', 'popsicle']],
   ['dairy', ['milk', 'gatas', 'cheese', 'butter', 'yogurt', 'yoghurt', 'cream', 'egg', 'itlog', 'margarine']],
-  ['bakery', ['bread', 'tinapay', 'pandesal', 'loaf', 'bun', 'croissant', 'cake', 'muffin', 'bagel', 'tortilla', 'pita']],
+  ['bakery', ['ensaymada', 'bread', 'tinapay', 'pandesal', 'loaf', 'bun', 'croissant', 'cake', 'muffin', 'bagel', 'tortilla', 'pita']],
   ['drinks', ['water', 'juice', 'soda', 'coke', 'sprite', 'coffee', 'kape', 'tea', 'beer', 'wine', 'drink', 'gatorade', 'milo', 'energy']],
-  ['snacks', ['chips', 'chocolate', 'candy', 'cookie', 'biscuit', 'cracker', 'popcorn', 'nuts', 'snack', 'chichirya', 'gum']],
-  ['pantry', ['rice', 'bigas', 'pasta', 'noodle', 'pancit', 'flour', 'sugar', 'asukal', 'salt', 'asin', 'oil', 'mantika', 'vinegar', 'suka', 'soy', 'toyo', 'sauce', 'patis', 'ketchup', 'mayo', 'can', 'canned', 'corned', 'spam', 'cereal', 'oat', 'beans', 'spice', 'seasoning', 'magic sarap', 'bouillon', 'cube', 'honey', 'jam', 'peanut butter', 'condensed', 'evaporated']],
-  ['household', ['soap', 'detergent', 'sabon', 'bleach', 'tissue', 'toilet', 'paper towel', 'trash', 'garbage', 'sponge', 'dish', 'downy', 'fabric', 'cleaner', 'foil', 'cling', 'battery', 'bulb', 'zonrox']],
-  ['personal', ['shampoo', 'conditioner', 'toothpaste', 'toothbrush', 'deodorant', 'lotion', 'razor', 'pad', 'napkin', 'diaper', 'vitamin', 'medicine', 'alcohol', 'cotton', 'floss', 'sunscreen', 'body wash']],
+  ['snacks', ['potato chips', 'chips', 'chocolate', 'candy', 'cookie', 'biscuit', 'cracker', 'popcorn', 'nuts', 'peanuts', 'snack', 'chichirya', 'gum']],
+  ['pantry', ['rice', 'bigas', 'pasta', 'noodle', 'pancit', 'flour', 'sugar', 'asukal', 'salt', 'asin', 'oil', 'mantika', 'vinegar', 'suka', 'soy', 'toyo', 'sauce', 'patis', 'ketchup', 'mayo', 'mayonnaise', 'canned', 'corned beef', 'spaghetti', 'macaroni', 'oatmeal', 'corned', 'spam', 'cereal', 'oat', 'beans', 'spice', 'seasoning', 'magic sarap', 'bouillon', 'cube', 'honey', 'jam', 'peanut butter', 'condensed', 'evaporated']],
+  ['household', ['soap', 'detergent', 'sabon', 'bleach', 'tissue', 'toilet', 'paper towel', 'trash', 'garbage', 'sponge', 'dishwashing', 'dish soap', 'downy', 'fabric', 'fabric conditioner', 'cleaner', 'foil', 'cling', 'battery', 'bulb', 'zonrox']],
+  ['personal', ['bath soap', 'body soap', 'shampoo', 'conditioner', 'toothpaste', 'toothbrush', 'deodorant', 'lotion', 'razor', 'pad', 'napkin', 'diaper', 'vitamin', 'medicine', 'alcohol', 'cotton', 'floss', 'sunscreen', 'body wash']],
 ]
 
-/** Best-effort category guess from an item name. */
+const patterns = new Map<string, RegExp>()
+/** "egg" → eggs, "tomato" → tomatoes, "berry" → berries, as whole words. */
+function wordPattern(w: string) {
+  let re = patterns.get(w)
+  if (!re) {
+    const plural = w.endsWith('y') ? `|${w.slice(0, -1)}ies` : ''
+    re = new RegExp(`\\b(?:${w}(?:e?s)?${plural})\\b`)
+    patterns.set(w, re)
+  }
+  return re
+}
+
+/** Words that decide the category on their own, whatever follows ("canned tuna", "frozen peas"). */
+const MODIFIERS: [RegExp, Category][] = [
+  [/\bcanned\b/, 'pantry'],
+  [/\bfrozen\b/, 'frozen'],
+]
+
+/**
+ * Best-effort category guess from an item name. The keyword that appears
+ * last wins, since the last word usually names the thing ("orange juice" is a
+ * drink); at the same spot the longer phrase wins ("peanut butter" over "butter").
+ */
 export function guessCategory(name: string): Category | undefined {
   const n = name.toLowerCase()
-  let best: { cat: Category; len: number } | undefined
+  for (const [re, cat] of MODIFIERS) if (re.test(n)) return cat
+  let best: { cat: Category; end: number; len: number } | undefined
   for (const [cat, words] of KEYWORDS) {
     for (const w of words) {
-      // Match at word starts so "rice" isn't "ice" and "shampoo" isn't "ham";
-      // the longest keyword wins so "peanut butter" beats "butter".
-      if (w.length > (best?.len ?? 0) && new RegExp(`\\b${w}`).test(n)) best = { cat, len: w.length }
+      // Whole words (plurals allowed) so "rice" isn't "ice" and "candle" isn't "can".
+      const m = wordPattern(w).exec(n)
+      if (!m) continue
+      const end = m.index + m[0].length
+      if (!best || end > best.end || (end === best.end && w.length > best.len)) best = { cat, end, len: w.length }
     }
   }
   return best?.cat

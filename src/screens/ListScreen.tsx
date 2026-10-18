@@ -16,6 +16,8 @@ import { SORT_OPTIONS, sortItems } from '../lib/sort'
 import { SortMenu } from '../components/SortMenu'
 import { JustAdded } from '../components/JustAdded'
 import { usePinThenSettle } from '../lib/fly'
+import { AnimatedNumber } from '../components/AnimatedNumber'
+import { parseEntry } from '../lib/parseEntry'
 import { formatMoney } from '../lib/money'
 import { haptic } from '../lib/util'
 
@@ -75,10 +77,11 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
   )
 
   const quickAdd = () => {
-    const name = quick.trim()
+    // Accepts shorthand too: "candle stick 3@25" → qty 3 at ₱25 each.
+    const { name, qty, price } = parseEntry(quick)
     if (!name) return
     haptic()
-    const id = addListItem({ name, category: guessCategory(name) ?? 'other', qty: 1 })
+    const id = addListItem({ name, category: guessCategory(name) ?? 'other', qty: qty ?? 1, estPrice: price })
     setQuick('')
     pin(id)
   }
@@ -107,8 +110,8 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
       >
         {list.length > 0 && (
           <div className="mx-4 mb-6 grid grid-cols-2 gap-3">
-            <Stat label="Items" value={String(list.length)} />
-            <Stat label="Estimated" value={estimate > 0 ? money(estimate) : '—'} />
+            <Stat label="Items" value={<AnimatedNumber value={list.length} format={(n) => String(Math.round(n))} />} />
+            <Stat label="Estimated" value={estimate > 0 ? <AnimatedNumber value={estimate} format={money} /> : '—'} />
           </div>
         )}
 
@@ -133,7 +136,7 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
               ref={quickRef}
               value={quick}
               onChange={(e) => setQuick(e.target.value)}
-              placeholder="Add an item"
+              placeholder="Add an item, e.g. eggs 2@270"
               enterKeyHint="done"
               autoCapitalize="sentences"
               className="h-full min-w-0 flex-1 bg-transparent pr-4 text-[17px] outline-none placeholder:text-label-3"
@@ -233,7 +236,7 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-[24px] bg-card px-4 py-3">
       <div className="text-[13px] font-medium text-label-2">{label}</div>

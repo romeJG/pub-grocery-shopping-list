@@ -4,6 +4,7 @@ import { ShoppingCart, ListChecks, ChartColumn, Settings, Plus } from 'lucide-re
 import { useStore } from '../store/store'
 import { haptic } from '../lib/util'
 import { TABBAR_MINIMIZE_EVENT } from './Page'
+import { pop } from '../lib/gsap'
 
 export type Tab = 'trip' | 'list' | 'history' | 'settings'
 
@@ -65,9 +66,10 @@ export function TabBar({
               <button
                 key={id}
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
                   if (minimized) return setMinimized(false)
                   if (!active) haptic(5)
+                  pop(e.currentTarget.querySelector('[data-tab-icon]'), 0.72)
                   onChange(id)
                 }}
                 aria-current={active ? 'page' : undefined}
@@ -81,7 +83,7 @@ export function TabBar({
                     className="absolute inset-0 rounded-full bg-[var(--glass-lens)]"
                   />
                 )}
-                <span className={`relative transition-colors ${active ? 'text-blue' : 'text-label'}`}>
+                <span data-tab-icon className={`relative transition-colors ${active ? 'text-blue' : 'text-label'}`}>
                   <Icon size={24} strokeWidth={active ? 2.3 : 1.9} />
                   {badge != null && (
                     <span className="absolute -top-1 -right-2.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-red px-1 text-[11px] leading-none font-semibold text-white">

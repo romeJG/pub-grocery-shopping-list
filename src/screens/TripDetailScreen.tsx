@@ -4,6 +4,7 @@ import { Page, GlassButton } from '../components/Page'
 import { Section } from '../components/List'
 import { CategoryIcon, ItemRow } from '../components/ItemRow'
 import { BudgetRing } from '../components/BudgetRing'
+import { AnimatedNumber } from '../components/AnimatedNumber'
 import { Alert } from '../components/Dialog'
 import { useStore } from '../store/store'
 import { budgetLevel, itemCount, levelColor, lineTotal, tripSpent } from '../store/selectors'
@@ -62,7 +63,7 @@ export function TripDetailScreen({
           </BudgetRing>
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-semibold text-label-2">Total spent</div>
-            <div className="tabular truncate text-[28px] leading-[34px] font-bold">{money(spent)}</div>
+            <AnimatedNumber countUp value={spent} format={money} className="tabular block truncate text-[28px] leading-[34px] font-bold" />
             <div className="tabular text-[15px] text-label-2">Budget {money(trip.budget)}</div>
             {trip.budget > 0 && (
               <div className={`tabular mt-1 text-[13px] font-semibold ${delta >= 0 ? 'text-green' : 'text-red'}`}>

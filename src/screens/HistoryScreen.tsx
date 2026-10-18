@@ -3,6 +3,7 @@ import { ChartColumn, ChevronRight } from 'lucide-react'
 import { Page } from '../components/Page'
 import { Section } from '../components/List'
 import { SpendChart } from '../components/SpendChart'
+import { AnimatedNumber } from '../components/AnimatedNumber'
 import { useStore } from '../store/store'
 import { monthTotal, tripSpent } from '../store/selectors'
 import type { Trip } from '../store/types'
@@ -61,7 +62,7 @@ export function HistoryScreen({ onOpenTrip }: { onOpenTrip: (id: string) => void
     <Page title="History">
       <div className="mx-4 mb-8 rounded-[32px] bg-card p-5">
         <div className="text-[15px] font-semibold text-label-2">Spent this month</div>
-        <div className="tabular text-[34px] leading-[41px] font-bold tracking-tight">{money(thisMonth)}</div>
+        <AnimatedNumber value={thisMonth} format={money} className="tabular block text-[34px] leading-[41px] font-bold tracking-tight" />
         <div className="mt-0.5 text-[15px] text-label-2">
           {monthTrips} {monthTrips === 1 ? 'trip' : 'trips'}
           {lastMonth > 0 && (

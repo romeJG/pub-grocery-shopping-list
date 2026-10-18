@@ -26,6 +26,8 @@ import { SORT_OPTIONS, sortItems } from '../lib/sort'
 import { SortMenu } from '../components/SortMenu'
 import { JustAdded } from '../components/JustAdded'
 import { usePinThenSettle } from '../lib/fly'
+import { AnimatedNumber } from '../components/AnimatedNumber'
+import { shake } from '../lib/gsap'
 import { currencySymbol, formatMoney, parseAmount } from '../lib/money'
 import { formatRelativeDay, haptic } from '../lib/util'
 
@@ -197,6 +199,17 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
   const pct = trip.budget > 0 ? spent / trip.budget : 0
   const money = (n: number) => formatMoney(n, currency)
 
+  // Going over budget gets a "no" shake, like a wrong passcode.
+  const hero = useRef<HTMLDivElement>(null)
+  const prevLevel = useRef(level)
+  useEffect(() => {
+    if (level === 'over' && prevLevel.current !== 'over') {
+      shake(hero.current)
+      haptic(30)
+    }
+    prevLevel.current = level
+  }, [level])
+
   const check = (item: Item) => {
     haptic(10)
     if (item.inCart) return move(item.id, () => updateTripItem(item.id, { inCart: false }))
@@ -228,6 +241,7 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
     <>
       <Page
         title={trip.store || 'Shopping'}
+        titleAccessory={<BudgetBadge pct={pct} color={color} />}
         trailing={
           <>
             <SortMenu value={sort} onChange={(tripSort) => updateSettings({ tripSort })} />
@@ -238,31 +252,41 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
         }
       >
         {/* Budget hero */}
-        <div className="mx-4 mb-8">
+        <div ref={hero} className="mx-4 mb-8">
           <button
             type="button"
             onClick={() => setBudgetOpen(true)}
             className="press-glass flex w-full items-center gap-5 rounded-[32px] bg-card p-4 text-left"
           >
-            <BudgetRing progress={pct} color={color} size={116} stroke={14}>
-              <span className="tabular text-[22px] font-bold" style={{ color }}>
-                {Math.round(pct * 100)}%
+            <BudgetRing progress={pct} color={color} size={116} stroke={14} morphSource>
+              {/* The nav bar's budget badge morphs out of this as you scroll (see Page titleAccessory). */}
+              <span data-title-accessory-fade className="flex flex-col items-center">
+                <AnimatedNumber
+                  value={pct}
+                  format={(n) => `${Math.round(n * 100)}%`}
+                  className="tabular text-[22px] font-bold"
+                  style={{ color }}
+                  data-title-accessory-source
+                />
+                <span className="text-[12px] font-semibold text-label-2">used</span>
               </span>
-              <span className="text-[12px] font-semibold text-label-2">used</span>
             </BudgetRing>
             <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-semibold text-label-2">{remaining >= 0 ? 'Left to spend' : 'Over budget'}</div>
-              <motion.div
-                key={Math.round(remaining * 100)}
-                initial={{ opacity: 0.4, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="tabular truncate text-[30px] leading-9 font-bold tracking-tight"
+              {/* Same tween as the amount, so the label flips exactly when the count crosses zero. */}
+              <AnimatedNumber
+                value={remaining}
+                format={(n) => (n >= 0 ? 'Left to spend' : 'Over budget')}
+                className="block text-[15px] font-semibold text-label-2"
+              />
+              <AnimatedNumber
+                countUp
+                value={remaining}
+                format={(n) => money(Math.abs(n))}
+                className="tabular block truncate text-[30px] leading-9 font-bold tracking-tight transition-colors duration-300"
                 style={{ color }}
-              >
-                {money(Math.abs(remaining))}
-              </motion.div>
+              />
               <div className="tabular mt-0.5 text-[15px] text-label-2">
-                {money(spent)} of {money(trip.budget)}
+                <AnimatedNumber value={spent} format={money} /> of {money(trip.budget)}
               </div>
               {planned > 0 && (
                 <div
@@ -530,5 +554,54 @@ function TripSettingsSheet({
         </button>
       </div>
     </BottomSheet>
+  )
+}
+
+/**
+ * Compact budget % for the nav bar: a mini ring plus the number, in the budget color.
+ * Built from parts so Page can morph the hero ring into it: the ring is reshaped
+ * (data-morph-ring-target), while the background and text fade in (data-morph-fade).
+ */
+function BudgetBadge({ pct, color }: { pct: number; color: string }) {
+  const BOX = 14
+  const STROKE = 2.5
+  const r = (BOX - STROKE) / 2
+  const c = 2 * Math.PI * r
+  const shown = Math.min(Math.max(pct, 0), 1)
+  return (
+    <span className="tabular relative flex items-center gap-1 py-[3px] pr-2 pl-1.5 text-[13px] leading-none font-semibold" style={{ color }}>
+      <span
+        data-morph-fade
+        className="absolute inset-0 rounded-full"
+        style={{ background: `color-mix(in srgb, ${color} 14%, transparent)` }}
+      />
+      <svg
+        data-morph-ring-target
+        data-progress={shown}
+        data-base-stroke={STROKE}
+        width={BOX}
+        height={BOX}
+        viewBox={`0 0 ${BOX} ${BOX}`}
+        className="relative -rotate-90 overflow-visible"
+        aria-hidden
+      >
+        <circle cx={BOX / 2} cy={BOX / 2} r={r} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={STROKE} />
+        <circle
+          data-ring-arc
+          cx={BOX / 2}
+          cy={BOX / 2}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={STROKE}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - shown)}
+        />
+      </svg>
+      <span data-morph-fade className="relative">
+        {Math.round(pct * 100)}%
+      </span>
+    </span>
   )
 }

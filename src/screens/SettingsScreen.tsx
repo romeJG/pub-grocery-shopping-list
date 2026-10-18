@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Banknote, Wallet, Download, Upload, Trash2, Moon, ChevronsUpDown, Lock, FileText } from 'lucide-react'
+import { Banknote, Wallet, Download, Upload, Trash2, Moon, ChevronsUpDown, Lock, FileText, FlaskConical } from 'lucide-react'
 import { Page } from '../components/Page'
 import { Section, IconBadge, Row } from '../components/List'
 import { SegmentedControl } from '../components/Controls'
@@ -18,6 +18,18 @@ export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =
   const [budget, setBudget] = useState(String(settings.defaultBudget || ''))
   const [alert, setAlert] = useState<{ title: string; message: string } | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
+  const [confirmSample, setConfirmSample] = useState(false)
+
+  // Dev only: the mock module is dynamically imported so it never ships in production builds.
+  const loadSample = async () => {
+    setConfirmSample(false)
+    // The DEV check lets the bundler drop this import (and the chunk) from production.
+    if (import.meta.env.DEV) {
+      const { createMockState } = await import('../dev/mockData')
+      importData(createMockState())
+      setBudget(String(useStore.getState().settings.defaultBudget))
+    }
+  }
   const [pendingImport, setPendingImport] = useState<unknown>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -149,6 +161,17 @@ export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={onFile} />
       </Section>
 
+      {import.meta.env.DEV && (
+        <Section header="Developer" footer="Only shown while running the dev server.">
+          <Row
+            leading={<IconBadge icon={FlaskConical} color="#FF2D55" />}
+            title="Load Sample Data"
+            accent
+            onClick={() => setConfirmSample(true)}
+          />
+        </Section>
+      )}
+
       <Section header="About">
         <Row
           leading={<IconBadge icon={Lock} color="#5856D6" />}
@@ -186,6 +209,16 @@ export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =
         actions={[
           { label: 'Cancel', style: 'cancel', onPress: () => setPendingImport(null) },
           { label: 'Replace', style: 'destructive', onPress: confirmImport },
+        ]}
+      />
+      <Alert
+        open={confirmSample}
+        title="Load sample data?"
+        message="This replaces your current list, trips and settings with about 5 months of sample trips."
+        onDismiss={() => setConfirmSample(false)}
+        actions={[
+          { label: 'Cancel', style: 'cancel', onPress: () => setConfirmSample(false) },
+          { label: 'Load', onPress: () => void loadSample() },
         ]}
       />
       <Alert

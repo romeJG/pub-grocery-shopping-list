@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { motion } from 'motion/react'
+import { useEffect, useRef, useState } from 'react'
+import { gsap, useGSAP, prefersReducedMotion } from '../lib/gsap'
 import type { Trip } from '../store/types'
 import { tripSpent } from '../store/selectors'
 import { formatMoney } from '../lib/money'
@@ -19,13 +19,51 @@ export function SpendChart({ trips, currency }: { trips: Trip[]; currency: strin
     .map((t) => ({ id: t.id, date: t.finishedAt ?? t.startedAt, spent: tripSpent(t), budget: t.budget }))
   const [selected, setSelected] = useState<string | null>(data.at(-1)?.id ?? null)
 
-  if (data.length === 0) return null
   const max = Math.max(...data.flatMap((d) => [d.spent, d.budget]), 1) * 1.1
-  const sel = data.find((d) => d.id === selected) ?? data.at(-1)!
   const y = (v: number) => H - (v / max) * H
+  const heights = data.map((d) => Math.max(2, H - y(d.spent)))
+
+  // Bars rise in a left-to-right wave each time the chart comes into view
+  // (tabs stay mounted while hidden), then tween to new values while visible.
+  const chart = useRef<HTMLDivElement>(null)
+  const visible = useRef(false)
+  const heightsRef = useRef(heights)
+  heightsRef.current = heights
+
+  const hasData = data.length > 0
+  useEffect(() => {
+    const el = chart.current
+    if (!el) return
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !visible.current && !prefersReducedMotion()) {
+        gsap.fromTo(
+          el.querySelectorAll('[data-bar]'),
+          { height: 0 },
+          { height: (i: number) => heightsRef.current[i], duration: 0.8, stagger: 0.06, ease: 'back.out(1.6)', overwrite: true },
+        )
+      }
+      visible.current = entry.isIntersecting
+    })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasData])
+
+  useGSAP(
+    () => {
+      const bars = gsap.utils.toArray<HTMLElement>('[data-bar]')
+      if (prefersReducedMotion()) return bars.forEach((b, i) => void gsap.set(b, { height: heights[i] }))
+      // Visible: glide to the new values. Hidden: wait at 0 for the next wave.
+      if (visible.current) bars.forEach((b, i) => void gsap.to(b, { height: heights[i], duration: 0.5, overwrite: true }))
+      else gsap.set(bars, { height: 0 })
+    },
+    { scope: chart, dependencies: [heights.join(',')] },
+  )
+
+  if (data.length === 0) return null
+  const sel = data.find((d) => d.id === selected) ?? data.at(-1)!
 
   return (
-    <div className="px-4 pt-3 pb-3">
+    <div ref={chart} className="px-4 pt-3 pb-3">
       <div className="mb-3 min-h-[48px]">
         <div className="text-[13px] font-medium text-label-2">{formatDate(sel.date, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
         <div className="tabular text-[22px] font-bold">
@@ -57,11 +95,10 @@ export function SpendChart({ trips, currency }: { trips: Trip[]; currency: strin
                     style={{ top: y(d.budget) - 1, opacity: active ? 0.9 : 0.35 }}
                   />
                 )}
-                <motion.span
-                  className="absolute inset-x-0 bottom-0 rounded-t-[4px] bg-blue"
-                  initial={{ height: 0 }}
-                  animate={{ height: Math.max(2, H - y(d.spent)), opacity: active ? 1 : 0.45 }}
-                  transition={{ type: 'spring', damping: 24, stiffness: 160 }}
+                <span
+                  data-bar
+                  className="absolute inset-x-0 bottom-0 rounded-t-[4px] bg-blue transition-opacity duration-200"
+                  style={{ opacity: active ? 1 : 0.45 }}
                 />
               </button>
             )

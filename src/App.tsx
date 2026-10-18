@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { TabBar, type Tab } from './components/TabBar'
 import { TABBAR_MINIMIZE_EVENT } from './components/Page'
@@ -11,6 +11,7 @@ import { SettingsScreen } from './screens/SettingsScreen'
 import { Alert } from './components/Dialog'
 import { useStore } from './store/store'
 import { requestPersistence, STORAGE_ERROR_EVENT } from './lib/storage'
+import { cascadeIn } from './lib/gsap'
 
 function useTheme() {
   const theme = useStore((s) => s.settings.theme)
@@ -59,6 +60,13 @@ export default function App() {
   const [addSignal, setAddSignal] = useState({ trip: 0, list: 0 })
   const shopping = useStore((s) => s.activeTrip != null)
 
+  // Content cascades in when a tab appears (and when Shop swaps between start/active trip).
+  const screenRefs = useRef<Partial<Record<Tab, HTMLDivElement | null>>>({})
+  useLayoutEffect(() => {
+    const content = screenRefs.current[tab]?.querySelector('[data-page-content]')
+    if (content) cascadeIn([...content.children].slice(0, 8))
+  }, [tab, shopping])
+
   // Pushing or popping a page brings the minimized tab bar back.
   useEffect(() => {
     window.dispatchEvent(new CustomEvent(TABBAR_MINIMIZE_EVENT, { detail: false }))
@@ -90,7 +98,7 @@ export default function App() {
     <div className="relative mx-auto h-dvh max-w-xl overflow-hidden">
       {/* Keep tabs mounted so each keeps its scroll position, like UITabBarController */}
       {(Object.keys(screens) as Tab[]).map((t) => (
-        <div key={t} className="absolute inset-0 isolate" hidden={t !== tab}>
+        <div key={t} ref={(el) => void (screenRefs.current[t] = el)} className="absolute inset-0 isolate" hidden={t !== tab}>
           {screens[t]}
         </div>
       ))}

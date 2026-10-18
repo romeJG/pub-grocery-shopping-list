@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { motion } from 'motion/react'
 import { Check } from 'lucide-react'
 import { categoryMeta } from '../lib/categories'
 import type { Category } from '../store/types'
@@ -39,16 +38,16 @@ export function ItemRow({ category, name, subtitle, trailing, onClick, check, di
           type="button"
           aria-label={check.checked ? `Remove ${name} from cart` : `Add ${name} to cart`}
           onClick={check.onToggle}
-          className="flex h-[58px] w-12 shrink-0 items-center justify-center pl-2"
+          className="group flex h-[58px] w-12 shrink-0 items-center justify-center pl-2"
         >
-          <motion.span
-            whileTap={{ scale: 0.85 }}
-            className={`flex size-[24px] items-center justify-center rounded-full border-[1.5px] transition-colors ${
+          <span
+            data-check-circle
+            className={`flex size-[24px] items-center justify-center rounded-full border-[1.5px] transition-[color,background-color,border-color,scale] group-active:scale-85 ${
               check.checked ? 'border-green bg-green text-white' : 'border-label-3'
             }`}
           >
             {check.checked && <Check size={15} strokeWidth={3.5} />}
-          </motion.span>
+          </span>
         </button>
       )}
       <Tag
