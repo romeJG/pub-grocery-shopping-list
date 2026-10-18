@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { BottomSheet } from './BottomSheet'
 import { Stepper, PrimaryButton } from './Controls'
+import { ActionSheet } from './Dialog'
 import { CATEGORIES, guessCategory } from '../lib/categories'
 import { currencySymbol, formatMoney, parseAmount } from '../lib/money'
 import { useStore } from '../store/store'
@@ -65,6 +66,7 @@ function ItemForm({ initial, priceLabel = 'Price', primaryLabel, onSubmit, onDel
   const [category, setCategory] = useState<Category>(initial?.category ?? 'other')
   const [categoryTouched, setCategoryTouched] = useState(initial?.category != null)
   const [showSuggestions, setShowSuggestions] = useState(!initial?.name)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const nameRef = useRef<HTMLInputElement>(null)
   const priceRef = useRef<HTMLInputElement>(null)
@@ -206,13 +208,32 @@ function ItemForm({ initial, priceLabel = 'Price', primaryLabel, onSubmit, onDel
         </PrimaryButton>
       )}
       {onDelete && (
-        <button
-          type="button"
-          onClick={onDelete}
-          className="press-fade mt-3 flex h-11 w-full items-center justify-center gap-1.5 text-[17px] text-red"
-        >
-          <Trash2 size={18} /> {deleteLabel ?? 'Delete Item'}
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="press-glass mt-3 flex h-[54px] w-full items-center justify-center gap-2 rounded-full bg-fill text-[17px] font-semibold text-red"
+          >
+            <Trash2 size={19} strokeWidth={2.3} /> {deleteLabel ?? 'Delete Item'}
+          </button>
+          <ActionSheet
+            open={confirmDelete}
+            // "Delete “Milk”?" / "Remove “Milk”?" — the verb from the button label.
+            title={`${(deleteLabel ?? 'Delete').split(' ')[0]} “${initial?.name ?? name}”?`}
+            message="This can’t be undone."
+            onDismiss={() => setConfirmDelete(false)}
+            actions={[
+              {
+                label: deleteLabel ?? 'Delete Item',
+                style: 'destructive',
+                onPress: () => {
+                  setConfirmDelete(false)
+                  onDelete()
+                },
+              },
+            ]}
+          />
+        </>
       )}
     </form>
   )
