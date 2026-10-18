@@ -37,14 +37,14 @@ export function StorageMeter() {
       key: 'history',
       label: 'Trip history',
       detail: `${history.length} ${history.length === 1 ? 'trip' : 'trips'}`,
-      bytes: history.length ? byteSize(history) : 0,
+      bytes: byteSize(history),
       color: 'var(--meter-history)',
     },
     {
       key: 'list',
       label: 'Shopping list',
       detail: `${list.length} ${list.length === 1 ? 'item' : 'items'}`,
-      bytes: list.length ? byteSize(list) : 0,
+      bytes: byteSize(list),
       color: 'var(--meter-list)',
     },
   ]

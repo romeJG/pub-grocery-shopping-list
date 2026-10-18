@@ -47,7 +47,7 @@ export function BottomSheet({ open, onClose, title, confirmLabel, onConfirm, con
             onClick={onClose}
           />
           <motion.div
-            className="glass-strong absolute inset-x-2 bottom-[max(env(safe-area-inset-bottom),8px)] mx-auto flex max-h-[calc(100dvh-env(safe-area-inset-top)-24px)] max-w-xl flex-col rounded-[42px]"
+            className="glass-strong absolute inset-x-2 bottom-[max(env(safe-area-inset-bottom),8px)] mx-auto flex max-h-[calc(100dvh-env(safe-area-inset-top)-24px)] max-w-xl flex-col rounded-[38px]"
             initial={{ y: '110%' }}
             animate={{ y: 0 }}
             exit={{ y: '110%' }}

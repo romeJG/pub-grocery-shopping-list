@@ -14,22 +14,12 @@ function actionClass(style: DialogAction['style']) {
   return 'glass-tint'
 }
 
-/*
- * Concentric corners (iOS 26): card radius = button radius (25) + inset (15).
- * Text gets extra inset so it lines up with the buttons' label area.
- */
-const CARD = 'rounded-[40px] p-[15px]'
-const TEXT_INSET = 'px-[9px] pt-[9px]'
-
-function ActionButton({ a, grow }: { a: DialogAction; grow?: boolean }) {
+function ActionButton({ a }: { a: DialogAction }) {
   return (
     <button
       type="button"
       onClick={a.onPress}
-      // Only grow in a row: in a column, flex-1 would collapse the 50px height.
-      className={`press-glass relative h-[50px] min-w-0 shrink-0 rounded-full px-4 text-[17px] font-semibold ${
-        grow ? 'flex-1' : 'w-full'
-      } ${actionClass(a.style)}`}
+      className={`press-glass relative h-[50px] min-w-0 flex-1 rounded-full px-4 text-[17px] font-semibold ${actionClass(a.style)}`}
     >
       <span className="relative z-[2] block truncate">{a.label}</span>
     </button>
@@ -63,20 +53,18 @@ export function Alert({
             onClick={onDismiss}
           />
           <motion.div
-            className={`glass-strong relative w-full max-w-[320px] ${CARD}`}
+            className="glass-strong relative w-full max-w-[320px] rounded-[34px] p-[22px]"
             initial={{ opacity: 0, scale: 1.12 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94 }}
             transition={{ type: 'spring', damping: 26, stiffness: 420 }}
           >
             <div className="relative z-[2]">
-              <div className={TEXT_INSET}>
-                <h2 className="text-[17px] leading-[22px] font-semibold">{title}</h2>
-                {message && <div className="mt-1 text-[15px] leading-5 text-label-2">{message}</div>}
-              </div>
+              <h2 className="text-[17px] leading-[22px] font-semibold">{title}</h2>
+              {message && <div className="mt-1 text-[15px] leading-5 text-label-2">{message}</div>}
               <div className={`mt-5 flex gap-2.5 ${stacked ? 'flex-col-reverse' : ''}`}>
                 {actions.map((a) => (
-                  <ActionButton key={a.label} a={a} grow={!stacked} />
+                  <ActionButton key={a.label} a={a} />
                 ))}
               </div>
             </div>
@@ -114,7 +102,7 @@ export function ActionSheet({
             onClick={onDismiss}
           />
           <motion.div
-            className={`glass-strong absolute inset-x-2 bottom-[max(env(safe-area-inset-bottom),8px)] mx-auto max-w-md ${CARD}`}
+            className="glass-strong absolute inset-x-2 bottom-[max(env(safe-area-inset-bottom),8px)] mx-auto max-w-md rounded-[38px] p-5"
             initial={{ y: '115%' }}
             animate={{ y: 0 }}
             exit={{ y: '115%' }}
@@ -122,7 +110,7 @@ export function ActionSheet({
           >
             <div className="relative z-[2]">
               {(title || message) && (
-                <div className={`${TEXT_INSET} pb-4`}>
+                <div className="px-1 pb-4">
                   {title && <div className="text-[17px] font-semibold">{title}</div>}
                   {message && <div className="mt-0.5 text-[15px] text-label-2">{message}</div>}
                 </div>
