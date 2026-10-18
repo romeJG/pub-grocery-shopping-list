@@ -18,6 +18,7 @@ import { JustAdded } from '../components/JustAdded'
 import { usePinThenSettle } from '../lib/fly'
 import { AnimatedNumber } from '../components/AnimatedNumber'
 import { parseEntry } from '../lib/parseEntry'
+import { showUndo } from '../store/undo'
 import { formatMoney } from '../lib/money'
 import { haptic } from '../lib/util'
 
@@ -34,6 +35,7 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
   const [menu, setMenu] = useState(false)
   const quickRef = useRef<HTMLInputElement>(null)
   const { pinnedId, pin } = usePinThenSettle()
+  const deleteItem = (item: ListItem) => showUndo(`Deleted “${item.name}”`, removeListItem(item.id))
 
   const seenSignal = useRef(addSignal)
   useEffect(() => {
@@ -169,7 +171,7 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
                   transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
                   className="overflow-hidden"
                 >
-                  <SwipeRow itemName={item.name} onDelete={() => removeListItem(item.id)}>
+                  <SwipeRow itemName={item.name} onDelete={() => deleteItem(item)}>
                     {listRow(item)}
                   </SwipeRow>
                 </motion.div>
@@ -212,7 +214,7 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
           setSheet(null)
         }}
         onDelete={() => {
-          if (sheet?.mode === 'edit') removeListItem(sheet.item.id)
+          if (sheet?.mode === 'edit') deleteItem(sheet.item)
           setSheet(null)
         }}
       />
@@ -226,7 +228,8 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
             label: `Clear ${list.length} ${list.length === 1 ? 'Item' : 'Items'}`,
             style: 'destructive',
             onPress: () => {
-              clearList()
+              const n = list.length
+              showUndo(`Cleared ${n} ${n === 1 ? 'item' : 'items'}`, clearList())
               setMenu(false)
             },
           },

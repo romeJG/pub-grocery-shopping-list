@@ -5,6 +5,7 @@ import { Section, IconBadge, Row } from '../components/List'
 import { SegmentedControl } from '../components/Controls'
 import { Alert } from '../components/Dialog'
 import { StorageMeter } from '../components/StorageMeter'
+import { showUndo } from '../store/undo'
 import { exportData, useStore } from '../store/store'
 import type { Theme } from '../store/types'
 import { CURRENCIES, currencySymbol, parseAmount } from '../lib/money'
@@ -232,9 +233,14 @@ export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =
             label: 'Reset',
             style: 'destructive',
             onPress: () => {
-              resetAll()
-              setBudget(String(useStore.getState().settings.defaultBudget))
+              const undo = resetAll()
+              const syncBudget = () => setBudget(String(useStore.getState().settings.defaultBudget))
+              syncBudget()
               setConfirmReset(false)
+              showUndo('All data reset', () => {
+                undo()
+                syncBudget()
+              })
             },
           },
         ]}

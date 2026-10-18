@@ -27,6 +27,7 @@ import { SortMenu } from '../components/SortMenu'
 import { JustAdded } from '../components/JustAdded'
 import { usePinThenSettle } from '../lib/fly'
 import { AnimatedNumber } from '../components/AnimatedNumber'
+import { showUndo } from '../store/undo'
 import { shake } from '../lib/gsap'
 import { currencySymbol, formatMoney, parseAmount } from '../lib/money'
 import { formatRelativeDay, haptic } from '../lib/util'
@@ -161,6 +162,7 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
   const [budgetOpen, setBudgetOpen] = useState(false)
   const [confirm, setConfirm] = useState<'finish' | 'cancel' | null>(null)
   const { pinnedId, pin, move } = usePinThenSettle()
+  const deleteItem = (item: Item) => showUndo(`Deleted “${item.name}”`, removeTripItem(item.id))
 
   // The tab bar's "+" accessory asks us to open the add sheet.
   const seenSignal = useRef(addSignal)
@@ -322,7 +324,7 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
                 <AnimatePresence initial={false}>
                   {items.map((item) => (
                     <Collapse key={item.id}>
-                      <SwipeRow itemName={item.name} onDelete={() => removeTripItem(item.id)}>
+                      <SwipeRow itemName={item.name} onDelete={() => deleteItem(item)}>
                         <ItemRow
                           rowId={item.id}
                           category={item.category}
@@ -357,7 +359,7 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
             <AnimatePresence initial={false}>
               {inCartShown.map((item) => (
                 <Collapse key={item.id}>
-                  <SwipeRow itemName={item.name} onDelete={() => removeTripItem(item.id)}>
+                  <SwipeRow itemName={item.name} onDelete={() => deleteItem(item)}>
                     {cartRow(item)}
                   </SwipeRow>
                 </Collapse>
@@ -402,7 +404,7 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
           pin(sheet.item.id)
         }}
         onDelete={() => {
-          if (sheet?.mode === 'price') removeTripItem(sheet.item.id)
+          if (sheet?.mode === 'price') deleteItem(sheet.item)
           setSheet(null)
         }}
         deleteLabel="Remove from Trip"
@@ -417,7 +419,7 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
           setSheet(null)
         }}
         onDelete={() => {
-          if (sheet?.mode === 'edit') removeTripItem(sheet.item.id)
+          if (sheet?.mode === 'edit') deleteItem(sheet.item)
           setSheet(null)
         }}
       />
@@ -462,7 +464,7 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
             label: 'Cancel Trip',
             style: 'destructive',
             onPress: () => {
-              cancelTrip()
+              showUndo('Trip cancelled', cancelTrip())
               setConfirm(null)
             },
           },

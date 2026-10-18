@@ -34,8 +34,9 @@ interface Actions {
   /** Returns the new item's id. */
   addListItem: (item: Omit<ListItem, 'id'>) => string
   updateListItem: (id: string, patch: Partial<ListItem>) => void
-  removeListItem: (id: string) => void
-  clearList: () => void
+  // Destructive actions return an undo function that puts back exactly what they removed.
+  removeListItem: (id: string) => Undo
+  clearList: () => Undo
   replaceList: (items: Omit<ListItem, 'id'>[]) => void
 
   startTrip: (opts: { budget: number; store?: string; includeList: boolean }) => void
@@ -43,16 +44,25 @@ interface Actions {
   /** Returns the new item's id. */
   addTripItem: (item: NewItem & { inCart?: boolean }) => string
   updateTripItem: (id: string, patch: Partial<Item>) => void
-  removeTripItem: (id: string) => void
+  removeTripItem: (id: string) => Undo
   /** Mark as in-cart and move to the top so the cart reads newest-first. */
   moveToCart: (id: string, patch?: Partial<Item>) => void
   finishTrip: () => void
-  cancelTrip: () => void
+  cancelTrip: () => Undo
 
-  deleteHistoryTrip: (id: string) => void
+  deleteHistoryTrip: (id: string) => Undo
 
   importData: (data: unknown) => void
-  resetAll: () => void
+  resetAll: () => Undo
+}
+
+export type Undo = () => void
+const noop: Undo = () => {}
+
+/** Insert at a remembered index (clamped, since the array may have changed since). */
+const insertAt = <T,>(arr: T[], index: number, item: T) => {
+  const i = Math.max(0, Math.min(index, arr.length))
+  return [...arr.slice(0, i), item, ...arr.slice(i)]
 }
 
 export type Store = PersistedState & Actions
@@ -62,7 +72,7 @@ const mapTrip = (s: PersistedState, fn: (t: Trip) => Trip): Partial<PersistedSta
 
 export const useStore = create<Store>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
 
       updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
@@ -74,8 +84,19 @@ export const useStore = create<Store>()(
       },
       updateListItem: (id, patch) =>
         set((s) => ({ list: s.list.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
-      removeListItem: (id) => set((s) => ({ list: s.list.filter((i) => i.id !== id) })),
-      clearList: () => set({ list: [] }),
+      removeListItem: (id) => {
+        const index = get().list.findIndex((i) => i.id === id)
+        if (index < 0) return noop
+        const item = get().list[index]
+        set((s) => ({ list: s.list.filter((i) => i.id !== id) }))
+        return () => set((s) => (s.list.some((i) => i.id === id) ? {} : { list: insertAt(s.list, index, item) }))
+      },
+      clearList: () => {
+        const removed = get().list
+        set({ list: [] })
+        // Put the old items back in front of anything added since.
+        return () => set((s) => ({ list: [...removed.filter((r) => !s.list.some((i) => i.id === r.id)), ...s.list] }))
+      },
       replaceList: (items) => set({ list: items.map((i) => ({ ...i, id: uid() })) }),
 
       startTrip: ({ budget, store, includeList }) =>
@@ -108,8 +129,16 @@ export const useStore = create<Store>()(
         set((s) =>
           mapTrip(s, (t) => ({ ...t, items: t.items.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
         ),
-      removeTripItem: (id) =>
-        set((s) => mapTrip(s, (t) => ({ ...t, items: t.items.filter((i) => i.id !== id) }))),
+      removeTripItem: (id) => {
+        const index = get().activeTrip?.items.findIndex((i) => i.id === id) ?? -1
+        if (index < 0) return noop
+        const item = get().activeTrip!.items[index]
+        set((s) => mapTrip(s, (t) => ({ ...t, items: t.items.filter((i) => i.id !== id) })))
+        return () =>
+          set((s) =>
+            mapTrip(s, (t) => (t.items.some((i) => i.id === id) ? t : { ...t, items: insertAt(t.items, index, item) })),
+          )
+      },
       moveToCart: (id, patch) =>
         set((s) =>
           mapTrip(s, (t) => {
@@ -132,26 +161,42 @@ export const useStore = create<Store>()(
             .map((i) => ({ id: uid(), name: i.name, category: i.category, qty: i.qty, estPrice: i.price }))
           return { activeTrip: null, history: [done, ...s.history], list: [...s.list, ...leftovers] }
         }),
-      cancelTrip: () =>
-        set((s) => {
-          if (!s.activeTrip) return {}
-          const back: ListItem[] = s.activeTrip.items.map((i) => ({
-            id: uid(),
-            name: i.name,
-            category: i.category,
-            qty: i.qty,
-            estPrice: i.price,
+      cancelTrip: () => {
+        const trip = get().activeTrip
+        if (!trip) return noop
+        const back: ListItem[] = trip.items.map((i) => ({
+          id: uid(),
+          name: i.name,
+          category: i.category,
+          qty: i.qty,
+          estPrice: i.price,
+        }))
+        set((s) => ({ activeTrip: null, list: [...s.list, ...back] }))
+        // Bring the trip back (unless a new one was started) and take its items off the list again.
+        return () =>
+          set((s) => ({
+            activeTrip: s.activeTrip ?? trip,
+            list: s.activeTrip ? s.list : s.list.filter((i) => !back.some((b) => b.id === i.id)),
           }))
-          return { activeTrip: null, list: [...s.list, ...back] }
-        }),
+      },
 
-      deleteHistoryTrip: (id) => set((s) => ({ history: s.history.filter((t) => t.id !== id) })),
+      deleteHistoryTrip: (id) => {
+        const index = get().history.findIndex((t) => t.id === id)
+        if (index < 0) return noop
+        const trip = get().history[index]
+        set((s) => ({ history: s.history.filter((t) => t.id !== id) }))
+        return () => set((s) => (s.history.some((t) => t.id === id) ? {} : { history: insertAt(s.history, index, trip) }))
+      },
 
       importData: (data) => {
         const parsed = validateImport(data)
         set(parsed)
       },
-      resetAll: () => set({ ...initialState, settings: { ...defaultSettings } }),
+      resetAll: () => {
+        const { settings, list, activeTrip, history } = get()
+        set({ ...initialState, settings: { ...defaultSettings } })
+        return () => set({ settings, list, activeTrip, history })
+      },
     }),
     {
       name: STORAGE_KEY,

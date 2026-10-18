@@ -9,6 +9,7 @@ import { TripDetailScreen } from './screens/TripDetailScreen'
 import { LegalScreen, type LegalDoc } from './screens/LegalScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { Alert } from './components/Dialog'
+import { UndoToast } from './components/UndoToast'
 import { useStore } from './store/store'
 import { requestPersistence, STORAGE_ERROR_EVENT } from './lib/storage'
 import { cascadeIn } from './lib/gsap'
@@ -149,6 +150,8 @@ export default function App() {
           },
         ]}
       />
+
+      <UndoToast />
 
       <TabBar
         tab={tab}

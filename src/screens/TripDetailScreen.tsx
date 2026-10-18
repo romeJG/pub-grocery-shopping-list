@@ -5,6 +5,7 @@ import { Section } from '../components/List'
 import { CategoryIcon, ItemRow } from '../components/ItemRow'
 import { BudgetRing } from '../components/BudgetRing'
 import { AnimatedNumber } from '../components/AnimatedNumber'
+import { showUndo } from '../store/undo'
 import { Alert } from '../components/Dialog'
 import { useStore } from '../store/store'
 import { budgetLevel, itemCount, levelColor, lineTotal, tripSpent } from '../store/selectors'
@@ -152,7 +153,7 @@ export function TripDetailScreen({
             onPress: () => {
               setConfirm(null)
               onBack()
-              deleteHistoryTrip(trip.id)
+              showUndo(`Deleted ${trip.store || 'trip'}`, deleteHistoryTrip(trip.id))
             },
           },
         ]}
