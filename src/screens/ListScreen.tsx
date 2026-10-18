@@ -166,7 +166,7 @@ export function ListScreen({ onStartShopping, addSignal }: { onStartShopping: ()
                   transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
                   className="overflow-hidden"
                 >
-                  <SwipeRow onDelete={() => removeListItem(item.id)}>
+                  <SwipeRow itemName={item.name} onDelete={() => removeListItem(item.id)}>
                     {listRow(item)}
                   </SwipeRow>
                 </motion.div>

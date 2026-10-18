@@ -298,7 +298,7 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
                 <AnimatePresence initial={false}>
                   {items.map((item) => (
                     <Collapse key={item.id}>
-                      <SwipeRow onDelete={() => removeTripItem(item.id)}>
+                      <SwipeRow itemName={item.name} onDelete={() => removeTripItem(item.id)}>
                         <ItemRow
                           rowId={item.id}
                           category={item.category}
@@ -333,7 +333,9 @@ function ActiveTrip({ trip, onFinished, addSignal }: { trip: Trip; onFinished: (
             <AnimatePresence initial={false}>
               {inCartShown.map((item) => (
                 <Collapse key={item.id}>
-                  <SwipeRow onDelete={() => removeTripItem(item.id)}>{cartRow(item)}</SwipeRow>
+                  <SwipeRow itemName={item.name} onDelete={() => removeTripItem(item.id)}>
+                    {cartRow(item)}
+                  </SwipeRow>
                 </Collapse>
               ))}
             </AnimatePresence>
