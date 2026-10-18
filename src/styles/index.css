@@ -25,6 +25,10 @@
   --glass-rim-2: rgba(255, 255, 255, 0.35);
   --glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
   --glass-lens: rgba(0, 0, 0, 0.06);
+  /* Storage meter segments (validated categorical palette, light surface) */
+  --meter-trip: #34c759;
+  --meter-history: #007aff;
+  --meter-list: #ff9500;
   color-scheme: light;
 }
 
@@ -50,6 +54,10 @@
   --glass-rim-2: rgba(255, 255, 255, 0.06);
   --glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.3);
   --glass-lens: rgba(255, 255, 255, 0.1);
+  /* Stepped down from the system colors so they sit in the dark-surface lightness band */
+  --meter-trip: #28a745;
+  --meter-history: #0a84ff;
+  --meter-list: #d07400;
   color-scheme: dark;
 }
 
