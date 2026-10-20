@@ -4,10 +4,7 @@ import { Section, IconBadge } from './List'
 import { STORAGE_KEY, useStore } from '../store/store'
 import { byteSize, formatBytes, isPersisted, QUOTA_BYTES, requestPersistence } from '../lib/storage'
 import { haptic } from '../lib/util'
-
-const isStandalone = () =>
-  window.matchMedia?.('(display-mode: standalone)').matches ||
-  (navigator as Navigator & { standalone?: boolean }).standalone === true
+import { isStandalone } from '../lib/install'
 
 /** iPhone Storage–style meter for the app's data, plus eviction protection status. */
 export function StorageMeter() {

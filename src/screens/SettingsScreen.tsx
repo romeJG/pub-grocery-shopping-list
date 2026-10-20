@@ -1,14 +1,16 @@
 import { useRef, useState } from 'react'
-import { Banknote, Wallet, Download, Upload, Trash2, Moon, ChevronsUpDown, Lock, FileText, FlaskConical } from 'lucide-react'
+import { Banknote, Wallet, Download, Upload, Trash2, Moon, ChevronsUpDown, Lock, FileText, FlaskConical, SquarePlus, Globe } from 'lucide-react'
 import { Page } from '../components/Page'
 import { Section, IconBadge, Row } from '../components/List'
 import { SegmentedControl } from '../components/Controls'
 import { Alert } from '../components/Dialog'
 import { StorageMeter } from '../components/StorageMeter'
+import { InstallSheet } from '../components/InstallSheet'
 import { showUndo } from '../store/undo'
 import { exportData, useStore } from '../store/store'
 import type { Theme } from '../store/types'
 import { CURRENCIES, currencySymbol, parseAmount } from '../lib/money'
+import { useInstall } from '../lib/install'
 import type { LegalDoc } from './LegalScreen'
 
 export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) => void }) {
@@ -20,6 +22,11 @@ export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =
   const [alert, setAlert] = useState<{ title: string; message: string } | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [confirmSample, setConfirmSample] = useState(false)
+  const [showInstall, setShowInstall] = useState(false)
+  const install = useInstall()
+
+  // Chromium can show its own install dialog; everywhere else (all of iOS) gets the manual steps.
+  const addToHomeScreen = () => (install.canPrompt ? void install.promptInstall() : setShowInstall(true))
 
   // Dev only: the mock module is dynamically imported so it never ships in production builds.
   const loadSample = async () => {
@@ -141,6 +148,17 @@ export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =
         </div>
       </Section>
 
+      {!install.installed && (
+        <Section footer="Opens full screen like a regular app and works offline.">
+          <Row
+            leading={<IconBadge icon={SquarePlus} color="#007AFF" />}
+            title="Add to Home Screen"
+            accent
+            onClick={addToHomeScreen}
+          />
+        </Section>
+      )}
+
       <StorageMeter />
 
       <Section
@@ -202,6 +220,31 @@ export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =
         Grocery Tracker · {tripCount} {tripCount === 1 ? 'trip' : 'trips'} saved
       </p>
 
+      <div className="mt-3 flex flex-col items-center gap-1.5 px-8 text-[13px] text-label-2">
+        <span>
+          © {new Date().getFullYear()} <span className="font-semibold text-label">Justine Rome M. Guillermo</span>
+        </span>
+        <div className="flex items-center gap-4">
+          <a
+            href="https://github.com/romeJG"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pressable flex items-center gap-1 text-blue"
+          >
+            <GitHubMark /> GitHub
+          </a>
+          <a
+            href="https://romejg.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pressable flex items-center gap-1 text-blue"
+          >
+            <Globe size={14} strokeWidth={2.2} /> Portfolio
+          </a>
+        </div>
+      </div>
+
+      <InstallSheet open={showInstall} onClose={() => setShowInstall(false)} platform={install.platform} />
       <Alert
         open={pendingImport != null}
         title="Replace your data?"
@@ -253,5 +296,14 @@ export function SettingsScreen({ onOpenLegal }: { onOpenLegal: (doc: LegalDoc) =
         actions={[{ label: 'OK', onPress: () => setAlert(null) }]}
       />
     </Page>
+  )
+}
+
+/** Lucide dropped brand icons, so the GitHub mark is inlined. */
+function GitHubMark() {
+  return (
+    <svg viewBox="0 0 16 16" width={14} height={14} fill="currentColor" aria-hidden="true">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
   )
 }
